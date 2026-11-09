@@ -1,0 +1,12 @@
+[package]
+name = "velocity-hardware"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+velocity-core.workspace = true
+serde.workspace = true
+tracing.workspace = true
+

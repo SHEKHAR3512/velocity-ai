@@ -1,0 +1,24 @@
+[package]
+name = "velocity-engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+velocity-core.workspace = true
+velocity-config.workspace = true
+velocity-hardware.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+futures-util.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[[bin]]
+name = "velocity-chat"
+path = "src/bin/velocity_chat.rs"
+

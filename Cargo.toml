@@ -1,0 +1,53 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/velocity-core",
+    "crates/velocity-hardware",
+    "crates/velocity-config",
+    "crates/velocity-storage",
+    "crates/velocity-models",
+    "crates/velocity-engine",
+    "crates/velocity-benchmark",
+    "apps/desktop",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["VELOCITY AI Systems Team"]
+license = "MIT"
+repository = "https://github.com/velocity-ai/velocity-ai"
+
+[workspace.dependencies]
+# Internal crates
+velocity-core = { path = "crates/velocity-core" }
+velocity-hardware = { path = "crates/velocity-hardware" }
+velocity-config = { path = "crates/velocity-config" }
+velocity-storage = { path = "crates/velocity-storage" }
+velocity-models = { path = "crates/velocity-models" }
+velocity-engine = { path = "crates/velocity-engine" }
+velocity-benchmark = { path = "crates/velocity-benchmark" }
+
+# Async & Networking
+tokio = { version = "1.41", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+futures-util = "0.3"
+async-trait = "0.1"
+
+# Serialization & Config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+directories = "5.0"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Storage
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Logging & Errors
+thiserror = "2.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+

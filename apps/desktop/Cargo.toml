@@ -1,0 +1,18 @@
+[package]
+name = "velocity-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+velocity-core.workspace = true
+velocity-hardware.workspace = true
+velocity-config.workspace = true
+velocity-storage.workspace = true
+velocity-models.workspace = true
+velocity-engine.workspace = true
+velocity-benchmark.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+

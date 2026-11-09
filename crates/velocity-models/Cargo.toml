@@ -1,0 +1,13 @@
+[package]
+name = "velocity-models"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+velocity-core.workspace = true
+velocity-config.workspace = true
+serde.workspace = true
+tracing.workspace = true
+

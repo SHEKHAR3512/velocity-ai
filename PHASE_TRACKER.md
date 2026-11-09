@@ -10,8 +10,8 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 |---|---|---|---|
 | **Phase 0** | Research, Planning & Hardware Audit | **Completed** | Hardware & Architecture Docs Approved |
 | **Phase 1** | Inference Benchmarking (CPU vs Vulkan vs CUDA) | **Completed** | Empirically Measured Benchmarks Recorded |
-| **Phase 2** | Rust Core & Terminal Chatbot | **In Progress** | Working Async Terminal Streaming Client |
-| **Phase 3** | Local Model Manager | **Pending** | Offline Model Import & Download Resumption |
+| **Phase 2** | Rust Core & Terminal Chatbot | **Completed** | Working Async Terminal Streaming Client |
+| **Phase 3** | Local Model Manager | **In Progress** | Offline Model Import & Download Resumption |
 | **Phase 4** | Native egui Desktop Application | **Pending** | Responsive 60 FPS egui UI with Streaming & Markdown |
 | **Phase 5** | Advanced Optimization (KV cache, Threads, Speculative) | **Pending** | Fastest Verified Hardware Config Identified |
 | **Phase 6** | Packaging, Hardening & Offline Verification | **Pending** | Clean Offline Release & Production Build |
@@ -39,7 +39,7 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 - [x] Select recommended default configuration based on real data (Vulkan for lowest TTFT, CUDA for max throughput, 4 threads for CPU).
 
 ### Phase 2: Rust Core Workspace
-- [ ] Initialize modular Cargo workspace:
+- [x] Initialize modular Cargo workspace:
   - `crates/velocity-core`
   - `crates/velocity-hardware`
   - `crates/velocity-config`
@@ -47,11 +47,11 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
   - `crates/velocity-engine`
   - `crates/velocity-models`
   - `crates/velocity-benchmark`
-- [ ] Implement runtime hardware detector in `velocity-hardware`.
-- [ ] Implement `llama-server` process manager with health check, auto-restart, and graceful shutdown in `velocity-engine`.
-- [ ] Implement asynchronous SSE token streaming client in `velocity-engine`.
-- [ ] Implement SQLite chat and settings storage in `velocity-storage`.
-- [ ] Build interactive terminal chat binary for end-to-end verification.
+- [x] Implement runtime hardware detector in `velocity-hardware`.
+- [x] Implement `llama-server` process manager with health check, auto-restart, and graceful shutdown in `velocity-engine`.
+- [x] Implement asynchronous SSE token streaming client in `velocity-engine`.
+- [x] Implement SQLite chat and settings storage in `velocity-storage`.
+- [x] Build interactive terminal chat binary (`velocity-chat`) for end-to-end verification (verified: 67.7 tok/s, 185ms TTFT, 274ms latency).
 
 ### Phase 3: Model Manager
 - [ ] Configurable model directory (`%LOCALAPPDATA%/VelocityAI/models/` and custom paths).

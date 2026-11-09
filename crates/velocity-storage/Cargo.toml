@@ -1,0 +1,14 @@
+[package]
+name = "velocity-storage"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+velocity-core.workspace = true
+rusqlite.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+

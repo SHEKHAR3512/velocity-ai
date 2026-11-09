@@ -26,3 +26,4 @@ inst_user_settings.tmp
 
 # Benchmarks raw binary dumps
 benchmarks/results/*.raw
+

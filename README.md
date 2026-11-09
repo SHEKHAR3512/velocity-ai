@@ -42,3 +42,4 @@ VELOCITY AI is a lightweight, high-performance desktop AI application written in
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
