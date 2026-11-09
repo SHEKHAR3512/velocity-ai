@@ -1,0 +1,28 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Models (GGUF weights)
+models/*.gguf
+models/**/*.gguf
+
+# Downloaded llama.cpp runtimes / binaries
+bin/llama-cpu/
+bin/llama-vulkan/
+bin/llama-cuda/
+bin/*.zip
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# OS / Temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+inst_user_settings.tmp
+
+# Benchmarks raw binary dumps
+benchmarks/results/*.raw
