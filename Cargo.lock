@@ -1607,7 +1607,11 @@ dependencies = [
 name = "velocity-models"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
+ "reqwest",
+ "ring",
  "serde",
+ "tokio",
  "tracing",
  "velocity-config",
  "velocity-core",

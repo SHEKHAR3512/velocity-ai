@@ -8,6 +8,10 @@ license.workspace = true
 [dependencies]
 velocity-core.workspace = true
 velocity-config.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+futures-util.workspace = true
+ring.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
