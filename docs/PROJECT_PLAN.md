@@ -147,3 +147,4 @@
 | **CUDA / Driver Incompatibility** | Low | High | Support Vulkan and CPU AVX2 backends as fully functional, zero-install alternatives. |
 | **Orphaned Inference Processes** | Medium | Medium | Implement parent process PID tracking, heartbeat checks, and drop guards that terminate child processes on shutdown. |
 | **egui UI Stutter During Inference** | Low | Medium | Strict thread decoupling: inference runs entirely on a background Tokio thread; tokens passed via non-blocking unbounded channels. |
+

@@ -77,3 +77,18 @@ The Intel Core i5-9300H features 4 physical cores and 8 threads.
 2. **Never Blindly Enable CUDA:** Test whether Vulkan or CPU AVX2 is faster for specific model architectures and prompt lengths.
 3. **Keep Storage on Drive D:** The project workspace and model repository are stationed on Drive D (800 GB free HDD), while frequently executed binaries can be cached or loaded into memory buffers.
 4. **Active Memory Guard:** The application must inspect available system RAM and VRAM before spawning the inference engine to prevent out-of-memory OS thrashing.
+
+---
+
+## 5. OS Security & Code Integrity Diagnostic (Smart App Control)
+
+During Phase 1 execution of external inference runtimes, the Windows kernel raised:
+- **NTSTATUS:** `0xC0E90002` (`STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION`)
+- **Win32 Error:** `os error 4551` (*An Application Control policy has blocked this file*)
+- **Code Integrity Event ID 3077:** `llama-cli.exe attempted to load llama.dll that did not meet the Enterprise signing level requirements or violated code integrity policy {0283ac0f-fff1-49ae-ada1-8a933130cad6}`
+- **Registry Setting:** `HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1` (Smart App Control: Enforced).
+
+**Resolution:**
+To develop and run native, high-performance offline AI runtimes (`llama.cpp`, Cargo build scripts, and local executables), Windows 11 Smart App Control must be set to **Off** in **Windows Security > App & browser control > Smart App Control settings**.
+
+

@@ -83,3 +83,4 @@ Speculative decoding uses a small, fast "draft" model to propose $K$ tokens in p
 - [x] File size verified against free disk space on Drive D.
 - [x] SHA256 integrity checksum available.
 - [x] Explicit user confirmation required before initiate download.
+

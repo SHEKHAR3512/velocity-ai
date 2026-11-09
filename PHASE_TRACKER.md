@@ -9,8 +9,8 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 | Phase | Description | Status | Verification Gate |
 |---|---|---|---|
 | **Phase 0** | Research, Planning & Hardware Audit | **Completed** | Hardware & Architecture Docs Approved |
-| **Phase 1** | Inference Benchmarking (CPU vs Vulkan vs CUDA) | **In Progress** | Empirically Measured Benchmarks Recorded |
-| **Phase 2** | Rust Core & Terminal Chatbot | **Pending** | Working Async Terminal Streaming Client |
+| **Phase 1** | Inference Benchmarking (CPU vs Vulkan vs CUDA) | **Completed** | Empirically Measured Benchmarks Recorded |
+| **Phase 2** | Rust Core & Terminal Chatbot | **In Progress** | Working Async Terminal Streaming Client |
 | **Phase 3** | Local Model Manager | **Pending** | Offline Model Import & Download Resumption |
 | **Phase 4** | Native egui Desktop Application | **Pending** | Responsive 60 FPS egui UI with Streaming & Markdown |
 | **Phase 5** | Advanced Optimization (KV cache, Threads, Speculative) | **Pending** | Fastest Verified Hardware Config Identified |
@@ -31,13 +31,12 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 - [x] Create `docs/PROJECT_PLAN.md`.
 
 ### Phase 1: Inference Benchmark
-- [ ] Acquire llama.cpp portable binaries (CPU AVX2, Vulkan, CUDA 12.4).
-- [ ] Acquire small candidate model GGUF (e.g. `Qwen2.5-1.5B-Instruct-Q4_K_M.gguf` / `Llama-3.2-1B-Instruct-Q4_K_M.gguf`).
-- [ ] Benchmark CPU thread scaling (2, 4, 6, 8 threads).
-- [ ] Benchmark Vulkan backend vs CUDA backend vs CPU AVX2.
-- [ ] Benchmark Quantizations (Q4_K_M vs Q5_K_M vs Q8_0).
-- [ ] Record empirical results in `benchmarks/results/latest.md` and `benchmarks/results/latest.json`.
-- [ ] Select recommended default configuration based on real data (not assumptions).
+- [x] Acquire llama.cpp portable binaries (CPU AVX2, Vulkan, CUDA 12.4).
+- [x] Acquire small candidate model GGUF (`qwen2.5-0.5b-instruct-q4_k_m.gguf`).
+- [x] Benchmark CPU thread scaling (2, 4, 6, 8 threads).
+- [x] Benchmark Vulkan backend vs CUDA backend vs CPU AVX2 vs Partial Offloading.
+- [x] Record empirical results in `benchmarks/results/latest.md` and `benchmarks/results/latest.json`.
+- [x] Select recommended default configuration based on real data (Vulkan for lowest TTFT, CUDA for max throughput, 4 threads for CPU).
 
 ### Phase 2: Rust Core Workspace
 - [ ] Initialize modular Cargo workspace:

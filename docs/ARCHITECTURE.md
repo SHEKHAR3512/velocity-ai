@@ -154,3 +154,4 @@ flowchart TD
 2. **Process Health Monitoring:** The supervisor periodically polls the child process. If the process terminates unexpectedly, `velocity-engine` traps the exit code, reads the captured stderr log, and notifies the UI with a descriptive diagnostic message instead of an unhandled panic.
 3. **Safe Shutdown Guarantee:** When the user closes the application, the supervisor sends a graceful shutdown signal (`SIGTERM` on Linux, `CTRL_BREAK` / Process kill on Windows) ensuring no orphaned `llama-server.exe` processes linger in Task Manager.
 4. **Offline Isolation:** All network requests are strictly bound to `127.0.0.1`. No outbound telemetry, analytics, or remote API calls are made.
+
