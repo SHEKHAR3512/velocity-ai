@@ -434,17 +434,17 @@ impl eframe::App for VelocityApp {
                 });
             });
 
-        // 2b. Sleek Top Header Bar (ChatGPT style - current chat title & hardware badge)
-        if self.state.active_tab == ActiveTab::Chat {
-            TopBottomPanel::top("chat_header_bar")
-                .frame(
-                    Frame::none()
-                        .fill(Theme::BG_CANVAS)
-                        .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
-                        .inner_margin(Margin::symmetric(24.0, 9.0)),
-                )
-                .show(ctx, |ui| {
-                    ui.horizontal(|ui| {
+        // 2b. Sleek Top Header Bar (ChatGPT style - persistent across all views)
+        TopBottomPanel::top("top_header_bar")
+            .frame(
+                Frame::none()
+                    .fill(Theme::BG_CANVAS)
+                    .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                    .inner_margin(Margin::symmetric(24.0, 9.0)),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| match self.state.active_tab {
+                    ActiveTab::Chat => {
                         let conv_title = self
                             .state
                             .current_conv_id
@@ -487,9 +487,54 @@ impl eframe::App for VelocityApp {
                                     .color(Theme::TEXT_SECONDARY),
                             );
                         });
-                    });
+                    }
+                    ActiveTab::Models => {
+                        ui.label(
+                            RichText::new("Model Library & Runtimes")
+                                .font(egui::FontId::proportional(15.0))
+                                .strong()
+                                .color(Theme::TEXT_PARCHMENT),
+                        );
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.label(
+                                RichText::new("4,096 MB VRAM Allocated | 100% Offline")
+                                    .font(egui::FontId::proportional(11.5))
+                                    .color(Theme::ACCENT_SAGE),
+                            );
+                        });
+                    }
+                    ActiveTab::Hardware => {
+                        ui.label(
+                            RichText::new("Hardware Telemetry & Benchmarks")
+                                .font(egui::FontId::proportional(15.0))
+                                .strong()
+                                .color(Theme::TEXT_PARCHMENT),
+                        );
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.label(
+                                RichText::new("NVIDIA GTX 1650 | Intel i5-9300H (4 Cores)")
+                                    .font(egui::FontId::proportional(11.5))
+                                    .color(Theme::CLAUDE_TERRACOTTA),
+                            );
+                        });
+                    }
+                    ActiveTab::Settings => {
+                        ui.label(
+                            RichText::new("Inference Configuration & Tuning")
+                                .font(egui::FontId::proportional(15.0))
+                                .strong()
+                                .color(Theme::TEXT_PARCHMENT),
+                        );
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.label(
+                                RichText::new("Runtime Tuning | Zero Paging Pressure")
+                                    .font(egui::FontId::proportional(11.5))
+                                    .color(Theme::TEXT_MUTED),
+                            );
+                        });
+                    }
                 });
-        }
+            });
 
         // 3. Pinned Bottom Chat Input Dock (Rendered ONLY on Chat tab, directly above status bar)
         if self.state.active_tab == ActiveTab::Chat {
@@ -514,27 +559,15 @@ impl eframe::App for VelocityApp {
             .frame(Frame::none().fill(Theme::BG_CANVAS).inner_margin(Margin::same(0.0)))
             .show(ctx, |ui| match self.state.active_tab {
                 ActiveTab::Chat => render_chat_messages(ui, &mut self.state, &mut on_send),
-                ActiveTab::Models => {
-                    Frame::none().inner_margin(Margin::same(16.0)).show(ui, |ui| {
-                        render_models_view(
-                            ui,
-                            &mut self.state,
-                            &mut on_select_model,
-                            &mut on_start_download,
-                            &mut on_refresh_models,
-                        );
-                    });
-                }
-                ActiveTab::Hardware => {
-                    Frame::none().inner_margin(Margin::same(16.0)).show(ui, |ui| {
-                        render_benchmarks_view(ui, &mut self.state, &mut on_switch_backend);
-                    });
-                }
-                ActiveTab::Settings => {
-                    Frame::none().inner_margin(Margin::same(16.0)).show(ui, |ui| {
-                        render_settings_view(ui, &mut self.state);
-                    });
-                }
+                ActiveTab::Models => render_models_view(
+                    ui,
+                    &mut self.state,
+                    &mut on_select_model,
+                    &mut on_start_download,
+                    &mut on_refresh_models,
+                ),
+                ActiveTab::Hardware => render_benchmarks_view(ui, &mut self.state, &mut on_switch_backend),
+                ActiveTab::Settings => render_settings_view(ui, &mut self.state),
             });
 
         // Handle dispatched actions
