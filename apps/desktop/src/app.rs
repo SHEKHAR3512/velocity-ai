@@ -188,6 +188,24 @@ impl VelocityApp {
         self.state.active_tab = ActiveTab::Chat;
     }
 
+    fn delete_conversation(&mut self, conv_id: Uuid) {
+        if let Some(ref store) = self.storage {
+            let _ = store.delete_conversation(conv_id);
+        }
+
+        self.state.conversations.retain(|c| c.id != conv_id);
+
+        if self.state.current_conv_id == Some(conv_id) {
+            if let Some(first) = self.state.conversations.first() {
+                let next_id = first.id;
+                self.select_conversation(next_id);
+            } else {
+                self.state.current_conv_id = None;
+                self.state.messages.clear();
+            }
+        }
+    }
+
     fn send_user_message(&mut self, text: String) {
         if text.trim().is_empty() || self.state.is_generating {
             return;
@@ -247,6 +265,7 @@ impl eframe::App for VelocityApp {
         let mut on_start_download = None;
         let mut on_switch_backend = None;
         let mut on_refresh_models = false;
+        let mut conv_to_delete = None;
 
         // 1. Bottom Claude Minimal Status Bar
         TopBottomPanel::bottom("status_bar")
@@ -404,28 +423,45 @@ impl eframe::App for VelocityApp {
 
                 ScrollArea::vertical().show(ui, |ui| {
                     let mut conv_to_select = None;
+                    let avail_w = ui.available_width();
                     for conv in &self.state.conversations {
                         let is_selected = self.state.current_conv_id == Some(conv.id);
-                        let conv_btn = egui::Button::new(
-                            RichText::new(&conv.title)
-                                .font(egui::FontId::proportional(12.5))
-                                .color(if is_selected {
-                                    Theme::TEXT_PARCHMENT
-                                } else {
-                                    Theme::TEXT_MUTED
-                                }),
-                        )
-                        .fill(if is_selected {
-                            Color32::from_rgb(38, 36, 33)
-                        } else {
-                            Color32::TRANSPARENT
-                        })
-                        .rounding(Rounding::same(6.0))
-                        .min_size(Vec2::new(ui.available_width(), 28.0));
+                        ui.horizontal(|ui| {
+                            let conv_btn = egui::Button::new(
+                                RichText::new(&conv.title)
+                                    .font(egui::FontId::proportional(12.5))
+                                    .color(if is_selected {
+                                        Theme::TEXT_PARCHMENT
+                                    } else {
+                                        Theme::TEXT_MUTED
+                                    }),
+                            )
+                            .fill(if is_selected {
+                                Color32::from_rgb(38, 36, 33)
+                            } else {
+                                Color32::TRANSPARENT
+                            })
+                            .rounding(Rounding::same(6.0))
+                            .min_size(Vec2::new(avail_w - 28.0, 26.0));
 
-                        if ui.add(conv_btn).clicked() {
-                            conv_to_select = Some(conv.id);
-                        }
+                            if ui.add(conv_btn).clicked() {
+                                conv_to_select = Some(conv.id);
+                            }
+
+                            // Delete button (x)
+                            let del_btn = egui::Button::new(
+                                RichText::new("x")
+                                    .font(egui::FontId::monospace(10.5))
+                                    .color(Theme::TEXT_MUTED),
+                            )
+                            .fill(Color32::TRANSPARENT)
+                            .rounding(Rounding::same(4.0))
+                            .min_size(Vec2::new(20.0, 20.0));
+
+                            if ui.add(del_btn).on_hover_text("Delete conversation").clicked() {
+                                conv_to_delete = Some(conv.id);
+                            }
+                        });
                         ui.add_space(2.0);
                     }
                     if let Some(id) = conv_to_select {
@@ -458,6 +494,25 @@ impl eframe::App for VelocityApp {
                                 .strong()
                                 .color(Theme::TEXT_PARCHMENT),
                         );
+
+                        if self.state.current_conv_id.is_some() {
+                            ui.add_space(8.0);
+                            let del_top_btn = egui::Button::new(
+                                RichText::new("Delete Chat")
+                                    .font(egui::FontId::proportional(11.0))
+                                    .color(Theme::TEXT_MUTED),
+                            )
+                            .fill(Color32::from_rgb(38, 36, 33))
+                            .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                            .rounding(Rounding::same(6.0))
+                            .min_size(Vec2::new(76.0, 22.0));
+
+                            if ui.add(del_top_btn).on_hover_text("Permanently delete this chat").clicked() {
+                                if let Some(id) = self.state.current_conv_id {
+                                    conv_to_delete = Some(id);
+                                }
+                            }
+                        }
 
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                             Frame::none()
@@ -614,6 +669,9 @@ impl eframe::App for VelocityApp {
             if let Ok(models) = self.model_mgr.list_models() {
                 self.state.local_models = models;
             }
+        }
+        if let Some(id) = conv_to_delete {
+            self.delete_conversation(id);
         }
     }
 }
