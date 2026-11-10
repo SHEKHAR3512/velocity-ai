@@ -5,7 +5,7 @@ use velocity_core::{Message, Role};
 use crate::state::AppState;
 use crate::theme::Theme;
 
-pub const MAX_CHAT_WIDTH: f32 = 780.0;
+pub const MAX_CHAT_WIDTH: f32 = 820.0;
 
 /// Renders the scrollable chat messages area (takes full height of the central panel)
 pub fn render_chat_messages(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>) {
@@ -13,18 +13,17 @@ pub fn render_chat_messages(ui: &mut Ui, state: &mut AppState, on_send: &mut Opt
     let content_width = available_width.min(MAX_CHAT_WIDTH);
     let side_margin = ((available_width - content_width) / 2.0).max(0.0);
 
-    ui.horizontal(|ui| {
-        ui.add_space(side_margin);
+    ScrollArea::vertical()
+        .stick_to_bottom(true)
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.add_space(side_margin);
 
-        ui.vertical(|ui| {
-            ui.set_width(content_width);
-
-            ScrollArea::vertical()
-                .stick_to_bottom(true)
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
+                ui.vertical(|ui| {
                     ui.set_width(content_width);
-                    ui.add_space(8.0);
+                    ui.set_max_width(content_width);
+                    ui.add_space(20.0);
 
                     if state.messages.is_empty() && state.streaming_text.is_empty() {
                         render_claude_welcome(ui, on_send);
@@ -32,7 +31,7 @@ pub fn render_chat_messages(ui: &mut Ui, state: &mut AppState, on_send: &mut Opt
                         for msg in &state.messages {
                             if msg.role != Role::System {
                                 render_claude_message(ui, msg);
-                                ui.add_space(18.0);
+                                ui.add_space(24.0);
                             }
                         }
 
@@ -44,15 +43,15 @@ pub fn render_chat_messages(ui: &mut Ui, state: &mut AppState, on_send: &mut Opt
                                 format!("{} |", state.streaming_text),
                             );
                             render_claude_message(ui, &stream_msg);
-                            ui.add_space(18.0);
+                            ui.add_space(24.0);
                         }
                     }
-                    ui.add_space(16.0);
+                    ui.add_space(30.0);
                 });
-        });
 
-        ui.add_space(side_margin);
-    });
+                ui.add_space(side_margin);
+            });
+        });
 }
 
 /// Fallback wrapper if called directly
@@ -160,53 +159,57 @@ fn render_claude_welcome(ui: &mut Ui, on_send: &mut Option<String>) {
 
 fn render_claude_message(ui: &mut Ui, msg: &Message) {
     if msg.role == Role::User {
-        // User message: Clean right-aligned pill
+        // User message: Clean right-aligned pill (ChatGPT style)
         ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
             Frame::none()
                 .fill(Theme::BG_USER_BUBBLE)
                 .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
-                .rounding(Rounding::same(16.0))
-                .inner_margin(Margin::symmetric(16.0, 12.0))
+                .rounding(Rounding::same(18.0))
+                .inner_margin(Margin::symmetric(18.0, 12.0))
                 .show(ui, |ui| {
-                    ui.set_max_width(MAX_CHAT_WIDTH * 0.82);
+                    ui.set_max_width(MAX_CHAT_WIDTH * 0.80);
                     ui.label(
                         RichText::new(&msg.content)
-                            .font(egui::FontId::proportional(14.5))
+                            .font(egui::FontId::proportional(15.0))
                             .color(Theme::TEXT_PARCHMENT),
                     );
                 });
         });
     } else {
-        // Assistant message: Editorial natural prose directly on canvas (No harsh box!)
+        // Assistant message: Full-width editorial prose directly on canvas (ChatGPT style)
         ui.vertical(|ui| {
-            // Header
-            ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("Velocity Assistant")
-                        .font(egui::FontId::proportional(13.0))
-                        .strong()
-                        .color(Theme::CLAUDE_TERRACOTTA),
-                );
-
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui
-                        .button(
-                            RichText::new("Copy")
-                                .font(egui::FontId::proportional(11.0))
-                                .color(Theme::TEXT_MUTED),
-                        )
-                        .clicked()
-                    {
-                        ui.ctx().copy_text(msg.content.clone());
-                    }
-                });
-            });
-
-            ui.add_space(6.0);
-
             // Rich Editorial Content
             render_editorial_content(ui, &msg.content);
+
+            ui.add_space(8.0);
+
+            // Subtle bottom action toolbar (Copy button)
+            ui.horizontal(|ui| {
+                let copy_btn = egui::Button::new(
+                    RichText::new("Copy")
+                        .font(egui::FontId::proportional(11.5))
+                        .color(Theme::TEXT_MUTED),
+                )
+                .fill(Color32::TRANSPARENT)
+                .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                .rounding(Rounding::same(6.0))
+                .min_size(Vec2::new(48.0, 22.0));
+
+                if ui.add(copy_btn).clicked() {
+                    ui.ctx().copy_text(msg.content.clone());
+                }
+            });
         });
+    }
+}
+
+fn parse_numbered_list(s: &str) -> Option<(&str, &str)> {
+    let dot_idx = s.find(". ")?;
+    let num_str = &s[..dot_idx];
+    if !num_str.is_empty() && num_str.chars().all(|c| c.is_ascii_digit()) {
+        Some((num_str, &s[dot_idx + 2..]))
+    } else {
+        None
     }
 }
 
@@ -253,69 +256,85 @@ fn render_prose_lines(ui: &mut Ui, text: &str) {
     for line in text.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() {
-            ui.add_space(6.0);
+            ui.add_space(8.0);
             continue;
         }
 
         if let Some(h1) = trimmed.strip_prefix("# ") {
-            ui.add_space(10.0);
+            ui.add_space(14.0);
             ui.label(
                 RichText::new(h1)
-                    .font(egui::FontId::proportional(20.0))
+                    .font(egui::FontId::proportional(22.0))
+                    .strong()
+                    .color(Theme::TEXT_PARCHMENT),
+            );
+            ui.add_space(6.0);
+        } else if let Some(h2) = trimmed.strip_prefix("## ") {
+            ui.add_space(12.0);
+            ui.label(
+                RichText::new(h2)
+                    .font(egui::FontId::proportional(18.5))
                     .strong()
                     .color(Theme::TEXT_PARCHMENT),
             );
             ui.add_space(4.0);
-        } else if let Some(h2) = trimmed.strip_prefix("## ") {
-            ui.add_space(8.0);
-            ui.label(
-                RichText::new(h2)
-                    .font(egui::FontId::proportional(17.0))
-                    .strong()
-                    .color(Theme::TEXT_PARCHMENT),
-            );
-            ui.add_space(3.0);
         } else if let Some(h3) = trimmed.strip_prefix("### ") {
-            ui.add_space(6.0);
+            ui.add_space(10.0);
             ui.label(
                 RichText::new(h3)
-                    .font(egui::FontId::proportional(15.0))
+                    .font(egui::FontId::proportional(16.0))
                     .strong()
                     .color(Theme::CLAUDE_TERRACOTTA),
             );
-            ui.add_space(2.0);
+            ui.add_space(3.0);
         } else if let Some(quote) = trimmed.strip_prefix("> ") {
             // Blockquote with warm terracotta border
             Frame::none()
                 .stroke(Stroke::new(2.5_f32, Theme::CLAUDE_TERRACOTTA))
-                .inner_margin(Margin { left: 12.0, right: 0.0, top: 2.0, bottom: 2.0 })
+                .inner_margin(Margin { left: 14.0, right: 0.0, top: 4.0, bottom: 4.0 })
                 .show(ui, |ui| {
                     ui.label(
                         RichText::new(quote)
-                            .font(egui::FontId::proportional(14.0))
+                            .font(egui::FontId::proportional(14.5))
                             .italics()
                             .color(Theme::TEXT_SECONDARY),
                     );
                 });
+            ui.add_space(6.0);
+        } else if let Some((num, rest)) = parse_numbered_list(trimmed) {
+            // Numbered list item like "1. Don't build..."
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(format!("{}.", num))
+                        .font(egui::FontId::proportional(15.0))
+                        .strong()
+                        .color(Theme::CLAUDE_TERRACOTTA),
+                );
+                ui.label(
+                    RichText::new(rest)
+                        .font(egui::FontId::proportional(15.0))
+                        .color(Theme::TEXT_PARCHMENT),
+                );
+            });
             ui.add_space(4.0);
         } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             let bullet_text = &trimmed[2..];
             ui.horizontal(|ui| {
-                ui.label(RichText::new("-").font(egui::FontId::proportional(14.0)).color(Theme::CLAUDE_TERRACOTTA));
+                ui.label(RichText::new("-").font(egui::FontId::proportional(15.0)).color(Theme::CLAUDE_TERRACOTTA));
                 ui.label(
                     RichText::new(bullet_text)
-                        .font(egui::FontId::proportional(14.5))
+                        .font(egui::FontId::proportional(15.0))
                         .color(Theme::TEXT_PARCHMENT),
                 );
             });
-            ui.add_space(2.0);
+            ui.add_space(3.0);
         } else {
             ui.label(
                 RichText::new(trimmed)
-                    .font(egui::FontId::proportional(14.5))
+                    .font(egui::FontId::proportional(15.0))
                     .color(Theme::TEXT_PARCHMENT),
             );
-            ui.add_space(2.0);
+            ui.add_space(3.0);
         }
     }
 }
@@ -464,6 +483,15 @@ pub fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &
                         });
                     });
                 });
+
+            ui.add_space(6.0);
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    RichText::new("Velocity AI runs 100% offline with zero cloud dependency on your NVIDIA GTX 1650")
+                        .font(egui::FontId::proportional(10.5))
+                        .color(Theme::TEXT_MUTED),
+                );
+            });
         });
 
         ui.add_space(side_margin);
