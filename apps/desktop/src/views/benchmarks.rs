@@ -24,7 +24,7 @@ pub fn render_benchmarks_view(
                 ui.add_space(16.0);
 
                 ui.label(
-                    RichText::new("✦ Hardware Telemetry & Benchmarks")
+                    RichText::new("Hardware Telemetry & Benchmarks")
                         .font(egui::FontId::proportional(22.0))
                         .strong()
                         .color(Theme::TEXT_PARCHMENT),
@@ -40,11 +40,11 @@ pub fn render_benchmarks_view(
 
                 // Hardware Summary Row
                 ui.horizontal(|ui| {
-                    render_hw_card(ui, "CPU Architecture", "Intel Core i5-9300H", "4 Cores • 8 Threads • AVX2 (Locked to 4)");
+                    render_hw_card(ui, "CPU Architecture", "Intel Core i5-9300H", "4 Cores | 8 Threads | AVX2 (Locked to 4)");
                     ui.add_space(12.0);
-                    render_hw_card(ui, "Discrete GPU", "NVIDIA GTX 1650", "4,096 MB GDDR5 • Vulkan 1.3 • CUDA 12.4");
+                    render_hw_card(ui, "Discrete GPU", "NVIDIA GTX 1650", "4,096 MB GDDR5 | Vulkan 1.3 | CUDA 12.4");
                     ui.add_space(12.0);
-                    render_hw_card(ui, "System Memory", "16.0 GB RAM", "Dual-Channel DDR4 • Zero Paging Pressure");
+                    render_hw_card(ui, "System Memory", "16.0 GB RAM", "Dual-Channel DDR4 | Zero Paging Pressure");
                 });
 
                 ui.add_space(24.0);
@@ -62,19 +62,19 @@ pub fn render_benchmarks_view(
                     (
                         BackendType::Vulkan,
                         "Vulkan Compute (GTX 1650)",
-                        "Fastest TTFT: 138.6 ms • 131.7 tok/s",
+                        "Fastest TTFT: 138.6 ms | 131.7 tok/s",
                         "Optimal for instant conversational responsiveness",
                     ),
                     (
                         BackendType::Cuda,
                         "NVIDIA CUDA (GTX 1650)",
-                        "Peak Throughput: 162.1 tok/s • 342.3 ms TTFT",
+                        "Peak Throughput: 162.1 tok/s | 342.3 ms TTFT",
                         "Optimal for long text generation and streaming",
                     ),
                     (
                         BackendType::Cpu,
                         "CPU AVX2 (4 Threads)",
-                        "31.4 tok/s • 0 MB VRAM Used",
+                        "31.4 tok/s | 0 MB VRAM Used",
                         "Reliable fallback, zero GPU dependency",
                     ),
                 ];

@@ -26,7 +26,7 @@ pub fn render_models_view(
                 // Header
                 ui.horizontal(|ui| {
                     ui.label(
-                        RichText::new("✦ Models & Local Runtimes")
+                        RichText::new("Models & Local Runtimes")
                             .font(egui::FontId::proportional(22.0))
                             .strong()
                             .color(Theme::TEXT_PARCHMENT),
@@ -72,7 +72,7 @@ pub fn render_models_view(
                                 );
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                     ui.label(
-                                        RichText::new(format!("{:.1} MB/s • {:.1}%", progress.speed_mbps, progress.percent))
+                                        RichText::new(format!("{:.1} MB/s | {:.1}%", progress.speed_mbps, progress.percent))
                                             .font(egui::FontId::monospace(12.0))
                                             .color(Theme::TEXT_PARCHMENT),
                                     );
@@ -164,7 +164,7 @@ pub fn render_models_view(
                                         ui.add_space(3.0);
                                         ui.label(
                                             RichText::new(format!(
-                                                "{:.0} MB • Arch: {} • Quant: {} • Context: {} tokens",
+                                                "{:.0} MB | Arch: {} | Quant: {} | Context: {} tokens",
                                                 model.file_size_mb,
                                                 model.architecture.as_deref().unwrap_or("qwen2"),
                                                 model.quantization.as_deref().unwrap_or("Q4_K_M"),
@@ -229,7 +229,7 @@ pub fn render_models_view(
                                                 .color(Theme::TEXT_PARCHMENT),
                                         );
                                         ui.label(
-                                            RichText::new(format!("✦ {}", curated.expected_tps))
+                                            RichText::new(curated.expected_tps)
                                                 .font(egui::FontId::monospace(11.0))
                                                 .color(Theme::CLAUDE_TERRACOTTA),
                                         );
@@ -251,7 +251,7 @@ pub fn render_models_view(
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                     if is_already_downloaded {
                                         ui.label(
-                                            RichText::new("✓ Installed")
+                                            RichText::new("Installed")
                                                 .font(egui::FontId::proportional(12.0))
                                                 .color(Theme::ACCENT_SAGE),
                                         );

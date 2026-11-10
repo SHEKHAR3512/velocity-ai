@@ -5,7 +5,7 @@ mod state;
 mod theme;
 mod views;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 5. Native Window Options
     let native_options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_title("VELOCITY AI — High Performance Desktop Chatbot")
+            .with_title("VELOCITY AI - High Performance Desktop Chatbot")
             .with_inner_size(Vec2::new(1150.0, 750.0))
             .with_min_inner_size(Vec2::new(850.0, 580.0))
             .with_active(true),

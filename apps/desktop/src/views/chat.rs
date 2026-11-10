@@ -8,104 +8,112 @@ use crate::theme::Theme;
 const MAX_CHAT_WIDTH: f32 = 780.0;
 
 pub fn render_chat_view(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
-    let available_width = ui.available_width();
-    let side_padding = ((available_width - MAX_CHAT_WIDTH) / 2.0).max(12.0);
+    let full_rect = ui.available_rect_before_wrap();
+    let available_width = full_rect.width();
+    let content_width = available_width.min(MAX_CHAT_WIDTH);
+    let margin_x = ((available_width - content_width) / 2.0).max(0.0);
 
-    ui.horizontal(|ui| {
-        ui.add_space(side_padding);
+    let chat_rect = egui::Rect::from_min_size(
+        egui::pos2(full_rect.min.x + margin_x, full_rect.min.y),
+        egui::vec2(content_width, full_rect.height()),
+    );
 
-        ui.vertical(|ui| {
-            ui.set_max_width(MAX_CHAT_WIDTH);
+    ui.allocate_new_ui(
+        egui::UiBuilder::new()
+            .max_rect(chat_rect)
+            .layout(Layout::bottom_up(Align::Center)),
+        |ui| {
+            ui.add_space(8.0);
 
-            // Chat messages scroll area
-            let available_height = ui.available_height() - 110.0;
+            // 1. PINNED BOTTOM INPUT CAPSULE (always at the very bottom, like ChatGPT & Claude)
+            render_claude_input_capsule(ui, state, on_send, on_stop);
+
+            ui.add_space(10.0);
+
+            // 2. CHAT MESSAGES SCROLL AREA (Takes all remaining vertical space up to the top)
             ScrollArea::vertical()
                 .stick_to_bottom(true)
                 .auto_shrink([false, false])
-                .max_height(available_height)
                 .show(ui, |ui| {
-                    ui.add_space(12.0);
+                    ui.with_layout(Layout::top_down(Align::Min), |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.add_space(12.0);
 
-                    if state.messages.is_empty() && state.streaming_text.is_empty() {
-                        render_claude_welcome(ui, on_send);
-                    } else {
-                        for msg in &state.messages {
-                            if msg.role != Role::System {
-                                render_claude_message(ui, msg);
+                        if state.messages.is_empty() && state.streaming_text.is_empty() {
+                            render_claude_welcome(ui, on_send);
+                        } else {
+                            for msg in &state.messages {
+                                if msg.role != Role::System {
+                                    render_claude_message(ui, msg);
+                                    ui.add_space(18.0);
+                                }
+                            }
+
+                            // Render active streaming message if generating
+                            if state.is_generating && !state.streaming_text.is_empty() {
+                                let stream_msg = Message::new(
+                                    state.current_conv_id.unwrap_or_else(Uuid::nil),
+                                    Role::Assistant,
+                                    format!("{} |", state.streaming_text),
+                                );
+                                render_claude_message(ui, &stream_msg);
                                 ui.add_space(18.0);
                             }
                         }
-
-                        // Render active streaming message if generating
-                        if state.is_generating && !state.streaming_text.is_empty() {
-                            let stream_msg = Message::new(
-                                state.current_conv_id.unwrap_or_else(Uuid::nil),
-                                Role::Assistant,
-                                format!("{} ❚", state.streaming_text),
-                            );
-                            render_claude_message(ui, &stream_msg);
-                            ui.add_space(18.0);
-                        }
-                    }
-                    ui.add_space(16.0);
+                        ui.add_space(16.0);
+                    });
                 });
-
-            ui.add_space(6.0);
-
-            // Floating Claude-style Input Capsule
-            render_claude_input_capsule(ui, state, on_send, on_stop);
-        });
-
-        ui.add_space(side_padding);
-    });
+        },
+    );
 }
 
 fn render_claude_welcome(ui: &mut Ui, on_send: &mut Option<String>) {
     ui.vertical_centered(|ui| {
-        ui.add_space(50.0);
+        ui.add_space(30.0);
 
-        // Claude-style terracotta spark
+        // Claude-style terracotta header
         ui.label(
-            RichText::new("✦")
-                .font(egui::FontId::proportional(34.0))
+            RichText::new("VELOCITY AI")
+                .font(egui::FontId::proportional(26.0))
+                .strong()
                 .color(Theme::CLAUDE_TERRACOTTA),
         );
         ui.add_space(8.0);
 
         ui.label(
-            RichText::new("How can Velocity help you today?")
-                .font(egui::FontId::proportional(26.0))
+            RichText::new("How can I help you today?")
+                .font(egui::FontId::proportional(22.0))
                 .strong()
                 .color(Theme::TEXT_PARCHMENT),
         );
-        ui.add_space(8.0);
+        ui.add_space(6.0);
 
         ui.label(
-            RichText::new("Ultra-fast offline intelligence powered by pure Rust & your GTX 1650")
-                .font(egui::FontId::proportional(14.0))
+            RichText::new("Ultra-fast offline intelligence running locally on your laptop")
+                .font(egui::FontId::proportional(13.5))
                 .color(Theme::TEXT_SECONDARY),
         );
-        ui.add_space(36.0);
+        ui.add_space(32.0);
 
         // 2x2 Clean Claude Suggestion Tiles
         let starters = [
             (
-                "⚡ Explain Hardware Speedups",
+                "Hardware Acceleration",
                 "How Vulkan & CUDA unlock 160+ tok/s on an NVIDIA GTX 1650 laptop.",
                 "Explain how Vulkan compute and CUDA accelerate LLM inference on an NVIDIA GTX 1650 laptop."
             ),
             (
-                "🦀 Write Concurrent Rust",
-                "Build an asynchronous token streaming client using Tokio channels.",
+                "Concurrent Rust Client",
+                "Build an asynchronous token streaming client using Tokio MPSC channels.",
                 "Write a high-performance concurrent token streaming client in Rust using Tokio MPSC channels."
             ),
             (
-                "🧠 L3 Cache & Thread Tuning",
+                "L3 Cache & Thread Tuning",
                 "Why 4 physical cores outperform 8 hyperthreads in GEMM matrix math.",
                 "Explain why 4 physical CPU threads beat 8 hyperthreads on an Intel i5-9300H for LLM inference."
             ),
             (
-                "🔬 Speculative Decoding",
+                "Speculative Decoding",
                 "How small draft models achieve 2x generation speedups on consumer laptops.",
                 "How does speculative decoding work and how can small draft models double inference speed on laptops?"
             ),
@@ -174,10 +182,10 @@ fn render_claude_message(ui: &mut Ui, msg: &Message) {
     } else {
         // Assistant message: Editorial natural prose directly on canvas (No harsh box!)
         ui.vertical(|ui| {
-            // Header with terracotta spark
+            // Header
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new("✦ Velocity")
+                    RichText::new("Velocity Assistant")
                         .font(egui::FontId::proportional(13.0))
                         .strong()
                         .color(Theme::CLAUDE_TERRACOTTA),
@@ -296,7 +304,7 @@ fn render_prose_lines(ui: &mut Ui, text: &str) {
         } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             let bullet_text = &trimmed[2..];
             ui.horizontal(|ui| {
-                ui.label(RichText::new("•").font(egui::FontId::proportional(14.0)).color(Theme::CLAUDE_TERRACOTTA));
+                ui.label(RichText::new("-").font(egui::FontId::proportional(14.0)).color(Theme::CLAUDE_TERRACOTTA));
                 ui.label(
                     RichText::new(bullet_text)
                         .font(egui::FontId::proportional(14.5))
@@ -361,12 +369,14 @@ fn render_claude_code_block(ui: &mut Ui, lang: &str, code: &str) {
 }
 
 fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
+    let capsule_width = ui.available_width();
     Frame::none()
         .fill(Theme::BG_INPUT)
         .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
         .rounding(Rounding::same(16.0))
         .inner_margin(Margin::symmetric(16.0, 10.0))
         .show(ui, |ui| {
+            ui.set_width(capsule_width);
             ui.vertical(|ui| {
                 // Text input
                 let response = ui.add(
@@ -395,7 +405,7 @@ fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut 
                 ui.horizontal(|ui| {
                     // Model badge pill
                     ui.label(
-                        RichText::new("✦ Velocity Instant (Qwen 0.5B)")
+                        RichText::new("Velocity Instant | Qwen 0.5B")
                             .font(egui::FontId::proportional(11.5))
                             .color(Theme::CLAUDE_TERRACOTTA),
                     );
@@ -404,7 +414,7 @@ fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut 
                         if state.is_generating {
                             // Pulsing stop button
                             let stop_btn = egui::Button::new(
-                                RichText::new("■ Stop")
+                                RichText::new("Stop")
                                     .font(egui::FontId::proportional(12.0))
                                     .strong()
                                     .color(Color32::WHITE),
@@ -419,7 +429,7 @@ fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut 
                         } else {
                             let can_send = !state.input_text.trim().is_empty();
                             let send_btn = egui::Button::new(
-                                RichText::new("↑ Send")
+                                RichText::new("Send")
                                     .font(egui::FontId::proportional(12.5))
                                     .strong()
                                     .color(if can_send {

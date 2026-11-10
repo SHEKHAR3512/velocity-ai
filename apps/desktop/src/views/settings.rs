@@ -17,7 +17,7 @@ pub fn render_settings_view(ui: &mut Ui, state: &mut AppState) {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.add_space(16.0);
                 ui.label(
-                    RichText::new("✦ Inference Settings")
+                    RichText::new("Inference Settings")
                         .font(egui::FontId::proportional(22.0))
                         .strong()
                         .color(Theme::TEXT_PARCHMENT),

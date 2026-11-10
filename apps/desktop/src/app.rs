@@ -255,19 +255,20 @@ impl eframe::App for VelocityApp {
                 ui.horizontal(|ui| {
                     if self.state.is_engine_ready {
                         ui.label(
-                            RichText::new("● Online")
+                            RichText::new("Online")
                                 .font(egui::FontId::proportional(11.5))
+                                .strong()
                                 .color(Theme::ACCENT_SAGE),
                         );
                     } else {
                         ui.label(
-                            RichText::new("○ Initializing...")
+                            RichText::new("Initializing...")
                                 .font(egui::FontId::proportional(11.5))
                                 .color(Theme::ACCENT_AMBER),
                         );
                     }
 
-                    ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
+                    ui.label(RichText::new("|").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
 
                     let model_name = Path::new(&self.state.selected_model)
                         .file_name()
@@ -279,7 +280,7 @@ impl eframe::App for VelocityApp {
                             .color(Theme::TEXT_SECONDARY),
                     );
 
-                    ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
+                    ui.label(RichText::new("|").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
 
                     ui.label(
                         RichText::new(format!("{}", self.state.active_backend))
@@ -288,10 +289,10 @@ impl eframe::App for VelocityApp {
                     );
 
                     if let Some(ref m) = self.state.latest_metrics {
-                        ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
+                        ui.label(RichText::new("|").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
                         ui.label(
                             RichText::new(format!(
-                                "{:.1} tok/s • {:.0} ms TTFT",
+                                "{:.1} tok/s | {:.0} ms TTFT",
                                 m.tokens_per_second, m.time_to_first_token_ms
                             ))
                             .font(egui::FontId::monospace(11.0))
@@ -301,7 +302,7 @@ impl eframe::App for VelocityApp {
 
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         ui.label(
-                            RichText::new("NVIDIA GTX 1650 • 4 Cores")
+                            RichText::new("NVIDIA GTX 1650 | 4 Cores")
                                 .font(egui::FontId::proportional(11.0))
                                 .color(Theme::TEXT_MUTED),
                         );
@@ -320,18 +321,13 @@ impl eframe::App for VelocityApp {
                     .inner_margin(Margin::same(14.0)),
             )
             .show(ctx, |ui| {
-                // Brand Header with Claude-style Terracotta Spark
+                // Brand Header
                 ui.horizontal(|ui| {
                     ui.label(
-                        RichText::new("✦")
-                            .font(egui::FontId::proportional(18.0))
-                            .color(Theme::CLAUDE_TERRACOTTA),
-                    );
-                    ui.label(
-                        RichText::new("Velocity")
+                        RichText::new("Velocity AI")
                             .font(egui::FontId::proportional(17.0))
                             .strong()
-                            .color(Theme::TEXT_PARCHMENT),
+                            .color(Theme::CLAUDE_TERRACOTTA),
                     );
                 });
                 ui.add_space(14.0);
@@ -355,12 +351,12 @@ impl eframe::App for VelocityApp {
                 ui.separator();
                 ui.add_space(10.0);
 
-                // Navigation Tabs
+                // Navigation Tabs (Clean ASCII labels, no missing font boxes)
                 let tabs = [
-                    (ActiveTab::Chat, "✦  Chat"),
-                    (ActiveTab::Models, "📦  Models"),
-                    (ActiveTab::Hardware, "⚡  Telemetry"),
-                    (ActiveTab::Settings, "⚙  Settings"),
+                    (ActiveTab::Chat, "Chat"),
+                    (ActiveTab::Models, "Models"),
+                    (ActiveTab::Hardware, "Telemetry"),
+                    (ActiveTab::Settings, "Settings"),
                 ];
 
                 for (tab, label) in tabs {
