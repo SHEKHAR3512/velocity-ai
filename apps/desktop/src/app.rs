@@ -44,7 +44,7 @@ impl VelocityApp {
 
         // Start with a new conversation if none exist
         if state.conversations.is_empty() {
-            let new_conv = Conversation::new("Welcome Chat", "qwen2.5-0.5b");
+            let new_conv = Conversation::new("New conversation", "qwen2.5-0.5b");
             if let Some(ref store) = storage {
                 let _ = store.save_conversation(&new_conv);
             }
@@ -163,7 +163,7 @@ impl VelocityApp {
 
     fn start_new_chat(&mut self) {
         let count = self.state.conversations.len() + 1;
-        let new_conv = Conversation::new(format!("Chat #{}", count), "qwen2.5-0.5b");
+        let new_conv = Conversation::new(format!("Conversation {}", count), "qwen2.5-0.5b");
         if let Some(ref store) = self.storage {
             let _ = store.save_conversation(&new_conv);
         }
@@ -243,90 +243,121 @@ impl eframe::App for VelocityApp {
         let mut on_switch_backend = None;
         let mut on_refresh_models = false;
 
-        // 1. Bottom Status Bar
+        // 1. Bottom Claude Minimal Status Bar
         TopBottomPanel::bottom("status_bar")
-            .frame(Frame::none().fill(Theme::BG_SIDEBAR).stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE)).inner_margin(Margin::symmetric(14.0, 6.0)))
+            .frame(
+                Frame::none()
+                    .fill(Theme::BG_SIDEBAR)
+                    .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                    .inner_margin(Margin::symmetric(18.0, 7.0)),
+            )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    // Engine indicator
                     if self.state.is_engine_ready {
-                        ui.label(RichText::new("● ONLINE").font(egui::FontId::monospace(11.0)).color(Theme::ACCENT_GREEN));
+                        ui.label(
+                            RichText::new("● Online")
+                                .font(egui::FontId::proportional(11.5))
+                                .color(Theme::ACCENT_SAGE),
+                        );
                     } else {
-                        ui.label(RichText::new("○ STARTING...").font(egui::FontId::monospace(11.0)).color(Theme::ACCENT_AMBER));
+                        ui.label(
+                            RichText::new("○ Initializing...")
+                                .font(egui::FontId::proportional(11.5))
+                                .color(Theme::ACCENT_AMBER),
+                        );
                     }
 
-                    ui.separator();
+                    ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
 
-                    // Model name
                     let model_name = Path::new(&self.state.selected_model)
                         .file_name()
                         .and_then(|n| n.to_str())
                         .unwrap_or(&self.state.selected_model);
-                    ui.label(RichText::new(format!("Model: {}", model_name)).font(egui::FontId::proportional(12.0)).color(Theme::TEXT_PRIMARY));
+                    ui.label(
+                        RichText::new(model_name)
+                            .font(egui::FontId::proportional(11.5))
+                            .color(Theme::TEXT_SECONDARY),
+                    );
 
-                    ui.separator();
+                    ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
 
-                    // Backend
-                    ui.label(RichText::new(format!("Backend: {}", self.state.active_backend)).font(egui::FontId::proportional(12.0)).color(Theme::ACCENT_CYAN));
+                    ui.label(
+                        RichText::new(format!("{}", self.state.active_backend))
+                            .font(egui::FontId::proportional(11.5))
+                            .color(Theme::CLAUDE_TERRACOTTA),
+                    );
 
-                    ui.separator();
-
-                    // Metrics
                     if let Some(ref m) = self.state.latest_metrics {
+                        ui.label(RichText::new("•").font(egui::FontId::proportional(11.0)).color(Theme::TEXT_MUTED));
                         ui.label(
                             RichText::new(format!(
-                                "{:.1} tok/s | TTFT: {:.0} ms | Latency: {:.0} ms",
-                                m.tokens_per_second, m.time_to_first_token_ms, m.total_duration_ms
+                                "{:.1} tok/s • {:.0} ms TTFT",
+                                m.tokens_per_second, m.time_to_first_token_ms
                             ))
-                            .font(egui::FontId::monospace(11.5))
-                            .color(Theme::ACCENT_GREEN),
+                            .font(egui::FontId::monospace(11.0))
+                            .color(Theme::ACCENT_SAGE),
                         );
-                    } else {
-                        ui.label(RichText::new("Ready for inference").font(egui::FontId::proportional(12.0)).color(Theme::TEXT_MUTED));
                     }
 
-                    // Hardware tag on right
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.label(RichText::new("NVIDIA GTX 1650 • i5-9300H (4 Cores)").font(egui::FontId::proportional(11.5)).color(Theme::TEXT_MUTED));
+                        ui.label(
+                            RichText::new("NVIDIA GTX 1650 • 4 Cores")
+                                .font(egui::FontId::proportional(11.0))
+                                .color(Theme::TEXT_MUTED),
+                        );
                     });
                 });
             });
 
-        // 2. Left Navigation & History Sidebar
+        // 2. Left Claude Minimal Sidebar
         SidePanel::left("left_sidebar")
             .resizable(false)
-            .default_width(240.0)
-            .frame(Frame::none().fill(Theme::BG_SIDEBAR).stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE)).inner_margin(Margin::same(12.0)))
+            .default_width(230.0)
+            .frame(
+                Frame::none()
+                    .fill(Theme::BG_SIDEBAR)
+                    .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                    .inner_margin(Margin::same(14.0)),
+            )
             .show(ctx, |ui| {
-                // Brand Header
+                // Brand Header with Claude-style Terracotta Spark
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("⚡ VELOCITY AI").font(egui::FontId::proportional(17.0)).strong().color(Theme::ACCENT_CYAN));
-                    ui.label(RichText::new("v0.1").font(egui::FontId::monospace(10.0)).color(Theme::TEXT_MUTED));
+                    ui.label(
+                        RichText::new("✦")
+                            .font(egui::FontId::proportional(18.0))
+                            .color(Theme::CLAUDE_TERRACOTTA),
+                    );
+                    ui.label(
+                        RichText::new("Velocity")
+                            .font(egui::FontId::proportional(17.0))
+                            .strong()
+                            .color(Theme::TEXT_PARCHMENT),
+                    );
                 });
-                ui.add_space(10.0);
+                ui.add_space(14.0);
 
-                // + New Chat button
+                // "+ New chat" Button
                 let new_chat_btn = egui::Button::new(
-                    RichText::new("+ New Chat")
-                        .font(egui::FontId::proportional(13.0))
-                        .strong()
-                        .color(Color32::BLACK),
+                    RichText::new("+ New chat")
+                        .font(egui::FontId::proportional(13.5))
+                        .color(Theme::TEXT_PARCHMENT),
                 )
-                .fill(Theme::ACCENT_CYAN)
-                .rounding(Rounding::same(6.0))
-                .min_size(Vec2::new(ui.available_width(), 32.0));
+                .fill(Color32::from_rgb(38, 36, 33))
+                .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
+                .rounding(Rounding::same(8.0))
+                .min_size(Vec2::new(ui.available_width(), 34.0));
 
                 if ui.add(new_chat_btn).clicked() {
                     self.start_new_chat();
                 }
 
-                ui.add_space(12.0);
+                ui.add_space(16.0);
                 ui.separator();
-                ui.add_space(8.0);
+                ui.add_space(10.0);
 
                 // Navigation Tabs
                 let tabs = [
-                    (ActiveTab::Chat, "💬  Chat"),
+                    (ActiveTab::Chat, "✦  Chat"),
                     (ActiveTab::Models, "📦  Models"),
                     (ActiveTab::Hardware, "⚡  Telemetry"),
                     (ActiveTab::Settings, "⚙  Settings"),
@@ -337,11 +368,19 @@ impl eframe::App for VelocityApp {
                     let tab_btn = egui::Button::new(
                         RichText::new(label)
                             .font(egui::FontId::proportional(13.0))
-                            .color(if is_active { Theme::ACCENT_CYAN } else { Theme::TEXT_SECONDARY }),
+                            .color(if is_active {
+                                Theme::CLAUDE_TERRACOTTA
+                            } else {
+                                Theme::TEXT_SECONDARY
+                            }),
                     )
-                    .fill(if is_active { Color32::from_rgb(28, 35, 48) } else { Color32::TRANSPARENT })
+                    .fill(if is_active {
+                        Color32::from_rgb(38, 36, 33)
+                    } else {
+                        Color32::TRANSPARENT
+                    })
                     .rounding(Rounding::same(6.0))
-                    .min_size(Vec2::new(ui.available_width(), 30.0));
+                    .min_size(Vec2::new(ui.available_width(), 28.0));
 
                     if ui.add(tab_btn).clicked() {
                         self.state.active_tab = tab;
@@ -349,13 +388,18 @@ impl eframe::App for VelocityApp {
                     ui.add_space(2.0);
                 }
 
-                ui.add_space(12.0);
+                ui.add_space(16.0);
                 ui.separator();
-                ui.add_space(8.0);
+                ui.add_space(10.0);
 
-                // Conversation History
-                ui.label(RichText::new("Conversations").font(egui::FontId::proportional(11.0)).strong().color(Theme::TEXT_MUTED));
-                ui.add_space(4.0);
+                // Recent Conversations Section
+                ui.label(
+                    RichText::new("Recent")
+                        .font(egui::FontId::proportional(11.5))
+                        .strong()
+                        .color(Theme::TEXT_MUTED),
+                );
+                ui.add_space(6.0);
 
                 ScrollArea::vertical().show(ui, |ui| {
                     let mut conv_to_select = None;
@@ -364,10 +408,18 @@ impl eframe::App for VelocityApp {
                         let conv_btn = egui::Button::new(
                             RichText::new(&conv.title)
                                 .font(egui::FontId::proportional(12.5))
-                                .color(if is_selected { Theme::TEXT_PRIMARY } else { Theme::TEXT_MUTED }),
+                                .color(if is_selected {
+                                    Theme::TEXT_PARCHMENT
+                                } else {
+                                    Theme::TEXT_MUTED
+                                }),
                         )
-                        .fill(if is_selected { Color32::from_rgb(30, 36, 48) } else { Color32::TRANSPARENT })
-                        .rounding(Rounding::same(5.0))
+                        .fill(if is_selected {
+                            Color32::from_rgb(38, 36, 33)
+                        } else {
+                            Color32::TRANSPARENT
+                        })
+                        .rounding(Rounding::same(6.0))
                         .min_size(Vec2::new(ui.available_width(), 28.0));
 
                         if ui.add(conv_btn).clicked() {
@@ -381,16 +433,20 @@ impl eframe::App for VelocityApp {
                 });
             });
 
-        // 3. Central Content Area
+        // 3. Central Canvas
         CentralPanel::default()
-            .frame(Frame::none().fill(Theme::BG_PRIMARY).inner_margin(Margin::same(14.0)))
-            .show(ctx, |ui| {
-                match self.state.active_tab {
-                    ActiveTab::Chat => render_chat_view(ui, &mut self.state, &mut on_send, &mut on_stop),
-                    ActiveTab::Models => render_models_view(ui, &mut self.state, &mut on_select_model, &mut on_start_download, &mut on_refresh_models),
-                    ActiveTab::Hardware => render_benchmarks_view(ui, &mut self.state, &mut on_switch_backend),
-                    ActiveTab::Settings => render_settings_view(ui, &mut self.state),
-                }
+            .frame(Frame::none().fill(Theme::BG_CANVAS).inner_margin(Margin::same(12.0)))
+            .show(ctx, |ui| match self.state.active_tab {
+                ActiveTab::Chat => render_chat_view(ui, &mut self.state, &mut on_send, &mut on_stop),
+                ActiveTab::Models => render_models_view(
+                    ui,
+                    &mut self.state,
+                    &mut on_select_model,
+                    &mut on_start_download,
+                    &mut on_refresh_models,
+                ),
+                ActiveTab::Hardware => render_benchmarks_view(ui, &mut self.state, &mut on_switch_backend),
+                ActiveTab::Settings => render_settings_view(ui, &mut self.state),
             });
 
         // Handle dispatched actions

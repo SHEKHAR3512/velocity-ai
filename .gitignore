@@ -21,6 +21,8 @@ bin/*.zip
 *.db-wal
 
 # OS / Temporary files
+__pycache__/
+*.pyc
 .DS_Store
 Thumbs.db
 *.tmp

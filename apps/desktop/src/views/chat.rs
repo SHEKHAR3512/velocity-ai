@@ -5,141 +5,188 @@ use velocity_core::{Message, Role};
 use crate::state::AppState;
 use crate::theme::Theme;
 
-pub fn render_chat_view(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
-    ui.vertical(|ui| {
-        // Chat messages scroll area
-        let available_height = ui.available_height() - 90.0;
-        ScrollArea::vertical()
-            .stick_to_bottom(true)
-            .auto_shrink([false, false])
-            .max_height(available_height)
-            .show(ui, |ui| {
-                ui.add_space(8.0);
+const MAX_CHAT_WIDTH: f32 = 780.0;
 
-                if state.messages.is_empty() && state.streaming_text.is_empty() {
-                    render_welcome_screen(ui, on_send);
-                } else {
-                    for msg in &state.messages {
-                        if msg.role != Role::System {
-                            render_message_bubble(ui, msg);
-                            ui.add_space(8.0);
+pub fn render_chat_view(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
+    let available_width = ui.available_width();
+    let side_padding = ((available_width - MAX_CHAT_WIDTH) / 2.0).max(12.0);
+
+    ui.horizontal(|ui| {
+        ui.add_space(side_padding);
+
+        ui.vertical(|ui| {
+            ui.set_max_width(MAX_CHAT_WIDTH);
+
+            // Chat messages scroll area
+            let available_height = ui.available_height() - 110.0;
+            ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .auto_shrink([false, false])
+                .max_height(available_height)
+                .show(ui, |ui| {
+                    ui.add_space(12.0);
+
+                    if state.messages.is_empty() && state.streaming_text.is_empty() {
+                        render_claude_welcome(ui, on_send);
+                    } else {
+                        for msg in &state.messages {
+                            if msg.role != Role::System {
+                                render_claude_message(ui, msg);
+                                ui.add_space(18.0);
+                            }
+                        }
+
+                        // Render active streaming message if generating
+                        if state.is_generating && !state.streaming_text.is_empty() {
+                            let stream_msg = Message::new(
+                                state.current_conv_id.unwrap_or_else(Uuid::nil),
+                                Role::Assistant,
+                                format!("{} ❚", state.streaming_text),
+                            );
+                            render_claude_message(ui, &stream_msg);
+                            ui.add_space(18.0);
                         }
                     }
+                    ui.add_space(16.0);
+                });
 
-                    // Render active streaming message if generating
-                    if state.is_generating && !state.streaming_text.is_empty() {
-                        let stream_msg = Message::new(
-                            state.current_conv_id.unwrap_or_else(Uuid::nil),
-                            Role::Assistant,
-                            format!("{} ❚", state.streaming_text),
-                        );
-                        render_message_bubble(ui, &stream_msg);
-                    }
-                }
-            });
+            ui.add_space(6.0);
 
-        ui.add_space(6.0);
+            // Floating Claude-style Input Capsule
+            render_claude_input_capsule(ui, state, on_send, on_stop);
+        });
 
-        // Input dock
-        render_input_dock(ui, state, on_send, on_stop);
+        ui.add_space(side_padding);
     });
 }
 
-fn render_welcome_screen(ui: &mut Ui, on_send: &mut Option<String>) {
+fn render_claude_welcome(ui: &mut Ui, on_send: &mut Option<String>) {
     ui.vertical_centered(|ui| {
-        ui.add_space(40.0);
+        ui.add_space(50.0);
+
+        // Claude-style terracotta spark
         ui.label(
-            RichText::new("⚡ VELOCITY AI")
-                .font(egui::FontId::proportional(28.0))
-                .strong()
-                .color(Theme::ACCENT_CYAN),
+            RichText::new("✦")
+                .font(egui::FontId::proportional(34.0))
+                .color(Theme::CLAUDE_TERRACOTTA),
         );
-        ui.add_space(6.0);
+        ui.add_space(8.0);
+
         ui.label(
-            RichText::new("Ultra-fast offline inference powered by Rust, Vulkan & CUDA")
+            RichText::new("How can Velocity help you today?")
+                .font(egui::FontId::proportional(26.0))
+                .strong()
+                .color(Theme::TEXT_PARCHMENT),
+        );
+        ui.add_space(8.0);
+
+        ui.label(
+            RichText::new("Ultra-fast offline intelligence powered by pure Rust & your GTX 1650")
                 .font(egui::FontId::proportional(14.0))
                 .color(Theme::TEXT_SECONDARY),
         );
-        ui.add_space(28.0);
+        ui.add_space(36.0);
 
-        ui.label(
-            RichText::new("Quick Starters")
-                .font(egui::FontId::proportional(13.0))
-                .color(Theme::TEXT_MUTED),
-        );
-        ui.add_space(10.0);
-
-        let prompts = [
-            "Explain how Vulkan accelerates LLM inference on an NVIDIA GTX 1650.",
-            "Write a high-performance concurrent token streaming client in Rust.",
-            "Why is 4 CPU threads optimal for an Intel i5-9300H over 8 threads?",
-            "How does speculative decoding achieve 2x speedup on small models?",
+        // 2x2 Clean Claude Suggestion Tiles
+        let starters = [
+            (
+                "⚡ Explain Hardware Speedups",
+                "How Vulkan & CUDA unlock 160+ tok/s on an NVIDIA GTX 1650 laptop.",
+                "Explain how Vulkan compute and CUDA accelerate LLM inference on an NVIDIA GTX 1650 laptop."
+            ),
+            (
+                "🦀 Write Concurrent Rust",
+                "Build an asynchronous token streaming client using Tokio channels.",
+                "Write a high-performance concurrent token streaming client in Rust using Tokio MPSC channels."
+            ),
+            (
+                "🧠 L3 Cache & Thread Tuning",
+                "Why 4 physical cores outperform 8 hyperthreads in GEMM matrix math.",
+                "Explain why 4 physical CPU threads beat 8 hyperthreads on an Intel i5-9300H for LLM inference."
+            ),
+            (
+                "🔬 Speculative Decoding",
+                "How small draft models achieve 2x generation speedups on consumer laptops.",
+                "How does speculative decoding work and how can small draft models double inference speed on laptops?"
+            ),
         ];
 
-        for prompt in prompts {
-            let button = egui::Button::new(
-                RichText::new(prompt)
-                    .font(egui::FontId::proportional(13.0))
-                    .color(Theme::TEXT_PRIMARY),
-            )
-            .fill(Theme::BG_CARD)
-            .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
-            .rounding(Rounding::same(6.0))
-            .min_size(Vec2::new(540.0, 36.0));
+        egui::Grid::new("claude_starters_grid")
+            .num_columns(2)
+            .spacing([14.0, 14.0])
+            .show(ui, |ui| {
+                for (i, (title, desc, prompt)) in starters.iter().enumerate() {
+                    let card_frame = Frame::none()
+                        .fill(Theme::BG_CARD)
+                        .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
+                        .rounding(Rounding::same(12.0))
+                        .inner_margin(Margin::same(14.0));
 
-            if ui.add(button).clicked() {
-                *on_send = Some(prompt.to_string());
-            }
-            ui.add_space(6.0);
-        }
+                    let response = card_frame.show(ui, |ui| {
+                        ui.set_width(360.0);
+                        ui.set_height(70.0);
+                        ui.vertical(|ui| {
+                            ui.label(
+                                RichText::new(*title)
+                                    .font(egui::FontId::proportional(14.0))
+                                    .strong()
+                                    .color(Theme::TEXT_PARCHMENT),
+                            );
+                            ui.add_space(4.0);
+                            ui.label(
+                                RichText::new(*desc)
+                                    .font(egui::FontId::proportional(12.0))
+                                    .color(Theme::TEXT_MUTED),
+                            );
+                        });
+                    });
+
+                    if response.response.interact(egui::Sense::click()).clicked() {
+                        *on_send = Some(prompt.to_string());
+                    }
+
+                    if i % 2 == 1 {
+                        ui.end_row();
+                    }
+                }
+            });
     });
 }
 
-fn render_message_bubble(ui: &mut Ui, msg: &Message) {
-    let is_user = msg.role == Role::User;
-
-    let fill_color = if is_user {
-        Theme::BG_USER_BUBBLE
+fn render_claude_message(ui: &mut Ui, msg: &Message) {
+    if msg.role == Role::User {
+        // User message: Clean right-aligned pill
+        ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+            Frame::none()
+                .fill(Theme::BG_USER_BUBBLE)
+                .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
+                .rounding(Rounding::same(16.0))
+                .inner_margin(Margin::symmetric(16.0, 12.0))
+                .show(ui, |ui| {
+                    ui.set_max_width(MAX_CHAT_WIDTH * 0.82);
+                    ui.label(
+                        RichText::new(&msg.content)
+                            .font(egui::FontId::proportional(14.5))
+                            .color(Theme::TEXT_PARCHMENT),
+                    );
+                });
+        });
     } else {
-        Theme::BG_CARD
-    };
-
-    let border_color = if is_user {
-        Color32::from_rgb(45, 55, 72)
-    } else {
-        Theme::BORDER_SUBTLE
-    };
-
-    Frame::none()
-        .fill(fill_color)
-        .stroke(Stroke::new(1.0_f32, border_color))
-        .rounding(Rounding::same(8.0))
-        .inner_margin(Margin::symmetric(14.0, 10.0))
-        .show(ui, |ui| {
-            ui.set_width(ui.available_width() - 8.0);
-
-            // Message Header (Role + Copy Action)
+        // Assistant message: Editorial natural prose directly on canvas (No harsh box!)
+        ui.vertical(|ui| {
+            // Header with terracotta spark
             ui.horizontal(|ui| {
-                if is_user {
-                    ui.label(
-                        RichText::new("You")
-                            .font(egui::FontId::proportional(12.0))
-                            .strong()
-                            .color(Theme::ACCENT_CYAN),
-                    );
-                } else {
-                    ui.label(
-                        RichText::new("VELOCITY AI")
-                            .font(egui::FontId::proportional(12.0))
-                            .strong()
-                            .color(Theme::ACCENT_GREEN),
-                    );
-                }
+                ui.label(
+                    RichText::new("✦ Velocity")
+                        .font(egui::FontId::proportional(13.0))
+                        .strong()
+                        .color(Theme::CLAUDE_TERRACOTTA),
+                );
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui
                         .button(
-                            RichText::new("📋 Copy")
+                            RichText::new("Copy")
                                 .font(egui::FontId::proportional(11.0))
                                 .color(Theme::TEXT_MUTED),
                         )
@@ -150,35 +197,35 @@ fn render_message_bubble(ui: &mut Ui, msg: &Message) {
                 });
             });
 
-            ui.add_space(4.0);
+            ui.add_space(6.0);
 
-            // Content with code block extraction
-            render_formatted_content(ui, &msg.content);
+            // Rich Editorial Content
+            render_editorial_content(ui, &msg.content);
         });
+    }
 }
 
-fn render_formatted_content(ui: &mut Ui, content: &str) {
+fn render_editorial_content(ui: &mut Ui, content: &str) {
     let mut in_code_block = false;
     let mut code_buffer = String::new();
+    let mut code_lang = String::new();
     let mut text_buffer = String::new();
 
     for line in content.lines() {
         if line.starts_with("```") {
             if in_code_block {
-                // End code block
-                render_code_block(ui, &code_buffer);
+                // End of code block
+                render_claude_code_block(ui, &code_lang, &code_buffer);
                 code_buffer.clear();
+                code_lang.clear();
                 in_code_block = false;
             } else {
-                // Start code block
+                // Start of code block
                 if !text_buffer.is_empty() {
-                    ui.label(
-                        RichText::new(&text_buffer)
-                            .font(egui::FontId::proportional(14.0))
-                            .color(Theme::TEXT_PRIMARY),
-                    );
+                    render_prose_lines(ui, &text_buffer);
                     text_buffer.clear();
                 }
+                code_lang = line.trim_start_matches("```").trim().to_string();
                 in_code_block = true;
             }
         } else if in_code_block {
@@ -191,36 +238,106 @@ fn render_formatted_content(ui: &mut Ui, content: &str) {
     }
 
     if in_code_block && !code_buffer.is_empty() {
-        render_code_block(ui, &code_buffer);
+        render_claude_code_block(ui, &code_lang, &code_buffer);
     } else if !text_buffer.is_empty() {
-        ui.label(
-            RichText::new(text_buffer.trim_end())
-                .font(egui::FontId::proportional(14.0))
-                .color(Theme::TEXT_PRIMARY),
-        );
+        render_prose_lines(ui, &text_buffer);
     }
 }
 
-fn render_code_block(ui: &mut Ui, code: &str) {
+fn render_prose_lines(ui: &mut Ui, text: &str) {
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            ui.add_space(6.0);
+            continue;
+        }
+
+        if let Some(h1) = trimmed.strip_prefix("# ") {
+            ui.add_space(10.0);
+            ui.label(
+                RichText::new(h1)
+                    .font(egui::FontId::proportional(20.0))
+                    .strong()
+                    .color(Theme::TEXT_PARCHMENT),
+            );
+            ui.add_space(4.0);
+        } else if let Some(h2) = trimmed.strip_prefix("## ") {
+            ui.add_space(8.0);
+            ui.label(
+                RichText::new(h2)
+                    .font(egui::FontId::proportional(17.0))
+                    .strong()
+                    .color(Theme::TEXT_PARCHMENT),
+            );
+            ui.add_space(3.0);
+        } else if let Some(h3) = trimmed.strip_prefix("### ") {
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(h3)
+                    .font(egui::FontId::proportional(15.0))
+                    .strong()
+                    .color(Theme::CLAUDE_TERRACOTTA),
+            );
+            ui.add_space(2.0);
+        } else if let Some(quote) = trimmed.strip_prefix("> ") {
+            // Blockquote with warm terracotta border
+            Frame::none()
+                .stroke(Stroke::new(2.5_f32, Theme::CLAUDE_TERRACOTTA))
+                .inner_margin(Margin { left: 12.0, right: 0.0, top: 2.0, bottom: 2.0 })
+                .show(ui, |ui| {
+                    ui.label(
+                        RichText::new(quote)
+                            .font(egui::FontId::proportional(14.0))
+                            .italics()
+                            .color(Theme::TEXT_SECONDARY),
+                    );
+                });
+            ui.add_space(4.0);
+        } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+            let bullet_text = &trimmed[2..];
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("•").font(egui::FontId::proportional(14.0)).color(Theme::CLAUDE_TERRACOTTA));
+                ui.label(
+                    RichText::new(bullet_text)
+                        .font(egui::FontId::proportional(14.5))
+                        .color(Theme::TEXT_PARCHMENT),
+                );
+            });
+            ui.add_space(2.0);
+        } else {
+            ui.label(
+                RichText::new(trimmed)
+                    .font(egui::FontId::proportional(14.5))
+                    .color(Theme::TEXT_PARCHMENT),
+            );
+            ui.add_space(2.0);
+        }
+    }
+}
+
+fn render_claude_code_block(ui: &mut Ui, lang: &str, code: &str) {
     let trimmed = code.trim_end();
+    let display_lang = if lang.is_empty() { "code" } else { lang };
+
     Frame::none()
         .fill(Theme::BG_CODE)
         .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
-        .rounding(Rounding::same(6.0))
-        .inner_margin(Margin::symmetric(10.0, 8.0))
+        .rounding(Rounding::same(8.0))
+        .inner_margin(Margin::same(12.0))
         .show(ui, |ui| {
+            // Header bar
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new("Code")
-                        .font(egui::FontId::monospace(10.0))
+                    RichText::new(display_lang.to_uppercase())
+                        .font(egui::FontId::monospace(10.5))
                         .color(Theme::TEXT_MUTED),
                 );
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui
                         .button(
-                            RichText::new("Copy")
-                                .font(egui::FontId::monospace(10.0))
-                                .color(Theme::ACCENT_CYAN),
+                            RichText::new("Copy code")
+                                .font(egui::FontId::proportional(11.0))
+                                .color(Theme::CLAUDE_TERRACOTTA),
                         )
                         .clicked()
                     {
@@ -228,30 +345,36 @@ fn render_code_block(ui: &mut Ui, code: &str) {
                     }
                 });
             });
-            ui.add_space(2.0);
+
+            ui.add_space(4.0);
+            ui.separator();
+            ui.add_space(6.0);
+
+            // Monospace code
             ui.label(
                 RichText::new(trimmed)
                     .font(egui::FontId::monospace(12.5))
-                    .color(Color32::from_rgb(226, 232, 240)),
+                    .color(Color32::from_rgb(230, 228, 222)),
             );
         });
-    ui.add_space(4.0);
+    ui.add_space(8.0);
 }
 
-fn render_input_dock(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
+fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
     Frame::none()
         .fill(Theme::BG_INPUT)
-        .stroke(Stroke::new(1.0_f32, Theme::BORDER_SUBTLE))
-        .rounding(Rounding::same(10.0))
-        .inner_margin(Margin::symmetric(12.0, 8.0))
+        .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
+        .rounding(Rounding::same(16.0))
+        .inner_margin(Margin::symmetric(16.0, 10.0))
         .show(ui, |ui| {
-            ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                // Text input
                 let response = ui.add(
                     TextEdit::multiline(&mut state.input_text)
-                        .hint_text("Ask VELOCITY AI anything... (Enter to send, Shift+Enter for new line)")
+                        .hint_text("Reply to Velocity... (Enter to send, Shift+Enter for new line)")
                         .desired_rows(2)
-                        .desired_width(ui.available_width() - 110.0)
-                        .font(egui::FontId::proportional(14.0))
+                        .desired_width(ui.available_width())
+                        .font(egui::FontId::proportional(14.5))
                         .frame(false),
                 );
 
@@ -266,49 +389,62 @@ fn render_input_dock(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<Str
                     }
                 }
 
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if state.is_generating {
-                        let stop_btn = egui::Button::new(
-                            RichText::new("⏹ Stop")
-                                .font(egui::FontId::proportional(13.0))
-                                .strong()
-                                .color(Color32::WHITE),
-                        )
-                        .fill(Theme::ACCENT_RED)
-                        .rounding(Rounding::same(6.0))
-                        .min_size(Vec2::new(80.0, 34.0));
+                ui.add_space(6.0);
 
-                        if ui.add(stop_btn).clicked() {
-                            *on_stop = true;
-                        }
-                    } else {
-                        let can_send = !state.input_text.trim().is_empty();
-                        let send_btn = egui::Button::new(
-                            RichText::new("⚡ Send")
-                                .font(egui::FontId::proportional(13.0))
-                                .strong()
-                                .color(if can_send {
-                                    Color32::BLACK
-                                } else {
-                                    Theme::TEXT_MUTED
-                                }),
-                        )
-                        .fill(if can_send {
-                            Theme::ACCENT_CYAN
+                // Capsule bottom action row
+                ui.horizontal(|ui| {
+                    // Model badge pill
+                    ui.label(
+                        RichText::new("✦ Velocity Instant (Qwen 0.5B)")
+                            .font(egui::FontId::proportional(11.5))
+                            .color(Theme::CLAUDE_TERRACOTTA),
+                    );
+
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if state.is_generating {
+                            // Pulsing stop button
+                            let stop_btn = egui::Button::new(
+                                RichText::new("■ Stop")
+                                    .font(egui::FontId::proportional(12.0))
+                                    .strong()
+                                    .color(Color32::WHITE),
+                            )
+                            .fill(Theme::ACCENT_RED)
+                            .rounding(Rounding::same(14.0))
+                            .min_size(Vec2::new(72.0, 28.0));
+
+                            if ui.add(stop_btn).clicked() {
+                                *on_stop = true;
+                            }
                         } else {
-                            Theme::BG_CARD
-                        })
-                        .rounding(Rounding::same(6.0))
-                        .min_size(Vec2::new(80.0, 34.0));
+                            let can_send = !state.input_text.trim().is_empty();
+                            let send_btn = egui::Button::new(
+                                RichText::new("↑ Send")
+                                    .font(egui::FontId::proportional(12.5))
+                                    .strong()
+                                    .color(if can_send {
+                                        Color32::WHITE
+                                    } else {
+                                        Theme::TEXT_MUTED
+                                    }),
+                            )
+                            .fill(if can_send {
+                                Theme::CLAUDE_TERRACOTTA
+                            } else {
+                                Color32::from_rgb(46, 44, 40)
+                            })
+                            .rounding(Rounding::same(14.0))
+                            .min_size(Vec2::new(72.0, 28.0));
 
-                        if ui.add_enabled(can_send, send_btn).clicked() {
-                            let trimmed = state.input_text.trim().to_string();
-                            if !trimmed.is_empty() {
-                                *on_send = Some(trimmed);
-                                state.input_text.clear();
+                            if ui.add_enabled(can_send, send_btn).clicked() {
+                                let trimmed = state.input_text.trim().to_string();
+                                if !trimmed.is_empty() {
+                                    *on_send = Some(trimmed);
+                                    state.input_text.clear();
+                                }
                             }
                         }
-                    }
+                    });
                 });
             });
         });
