@@ -45,6 +45,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # Storage
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# UI Desktop
+eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow"] }
+
 # Logging & Errors
 thiserror = "2.0"
 anyhow = "1.0"

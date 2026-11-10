@@ -13,6 +13,9 @@ velocity-storage.workspace = true
 velocity-models.workspace = true
 velocity-engine.workspace = true
 velocity-benchmark.workspace = true
+eframe.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+uuid.workspace = true
+chrono.workspace = true
 

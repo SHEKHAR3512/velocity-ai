@@ -45,11 +45,23 @@ impl LlamaServerSupervisor {
     }
 
     fn resolve_binary_dir(backend: BackendType) -> VelocityResult<(PathBuf, PathBuf)> {
-        let base_dirs = [
+        let mut base_dirs = vec![
             PathBuf::from("bin"),
             PathBuf::from("../../bin"),
             PathBuf::from("../../../bin"),
         ];
+
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                base_dirs.push(parent.join("bin"));
+                if let Some(gp) = parent.parent() {
+                    base_dirs.push(gp.join("bin"));
+                    if let Some(ggp) = gp.parent() {
+                        base_dirs.push(ggp.join("bin"));
+                    }
+                }
+            }
+        }
 
         let sub_folder = match backend {
             BackendType::Vulkan => "llama-vulkan",
@@ -88,6 +100,8 @@ impl LlamaServerSupervisor {
 
         let abs_model_path = std::fs::canonicalize(model_path)
             .unwrap_or_else(|_| model_path.to_path_buf());
+        let path_str = abs_model_path.to_string_lossy();
+        let clean_model_path = path_str.strip_prefix(r"\\?\").unwrap_or(&path_str).to_string();
 
         let port = Self::find_available_port()?;
         let (bin_dir, exe_path) = Self::resolve_binary_dir(config.backend)?;
@@ -96,14 +110,14 @@ impl LlamaServerSupervisor {
             "Starting llama-server [{}] on 127.0.0.1:{} with model {}",
             config.backend,
             port,
-            abs_model_path.display()
+            clean_model_path
         );
 
         let mut cmd = Command::new(&exe_path);
         cmd.current_dir(&bin_dir);
         cmd.args([
             "-m",
-            &abs_model_path.to_string_lossy(),
+            &clean_model_path,
             "--port",
             &port.to_string(),
             "--host",
@@ -120,8 +134,19 @@ impl LlamaServerSupervisor {
 
         match config.backend {
             BackendType::Vulkan => {
-                // On NVIDIA laptop with Intel iGPU, Vulkan1 is the NVIDIA GTX 1650
-                cmd.args(["-dev", "Vulkan1"]);
+                // Check if discrete GPU device (e.g. Vulkan1) exists
+                let dev_check = std::process::Command::new(&exe_path)
+                    .current_dir(&bin_dir)
+                    .arg("--list-devices")
+                    .output();
+                if let Ok(out) = dev_check {
+                    let text = String::from_utf8_lossy(&out.stdout);
+                    if text.contains("Vulkan1") {
+                        cmd.args(["-dev", "Vulkan1"]);
+                    } else if text.contains("Vulkan0") && (text.contains("GeForce") || text.contains("NVIDIA")) {
+                        cmd.args(["-dev", "Vulkan0"]);
+                    }
+                }
             }
             BackendType::Cuda => {
                 cmd.env("CUDA_VISIBLE_DEVICES", "0");

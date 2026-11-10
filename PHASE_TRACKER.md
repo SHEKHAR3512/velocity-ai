@@ -12,7 +12,7 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 | **Phase 1** | Inference Benchmarking (CPU vs Vulkan vs CUDA) | **Completed** | Empirically Measured Benchmarks Recorded |
 | **Phase 2** | Rust Core & Terminal Chatbot | **Completed** | Working Async Terminal Streaming Client |
 | **Phase 3** | Local Model Manager | **Completed** | Offline Model Import & Download Resumption |
-| **Phase 4** | Native egui Desktop Application | **In Progress** | Responsive 60 FPS egui UI with Streaming & Markdown |
+| **Phase 4** | Native egui Desktop Application | **Completed** | Responsive 60 FPS egui UI with Streaming & Markdown |
 | **Phase 5** | Advanced Optimization (KV cache, Threads, Speculative) | **Pending** | Fastest Verified Hardware Config Identified |
 | **Phase 6** | Packaging, Hardening & Offline Verification | **Pending** | Clean Offline Release & Production Build |
 
@@ -61,12 +61,12 @@ This document tracks the phased development of **VELOCITY AI**, a performance-fi
 - [x] Unit & integration tests for model management (all 4 tests passing).
 
 ### Phase 4: Native egui Desktop Application
-- [ ] `apps/desktop` setup using `egui` and `eframe`.
-- [ ] Clean, minimalist dark theme (macOS / Raycast / Linear design aesthetic).
-- [ ] Left sidebar: New Chat, History, Models, Benchmarks, Settings.
-- [ ] Main chat panel: Streamed token rendering, markdown formatting, syntax highlighted code blocks, copy button.
-- [ ] Bottom status bar: Active model, backend (CPU/Vulkan/CUDA), threads, tokens/sec, TTFT, RAM/VRAM usage.
-- [ ] Conversation persistence and restoration from SQLite.
+- [x] `apps/desktop` setup using `egui` and `eframe` (native OpenGL `glow` backend).
+- [x] Clean, minimalist dark theme (macOS / Raycast / Linear design aesthetic with electric cyan accents).
+- [x] Left sidebar: New Chat, History, Models, Telemetry, Settings with SQLite conversation persistence.
+- [x] Main chat panel: Streamed token rendering, markdown formatting, syntax highlighted code blocks, copy button, stop generation.
+- [x] Bottom status bar: Active model, backend indicator, live tokens/sec, TTFT, and hardware specs.
+- [x] Non-blocking Tokio multi-threaded background inference worker communicating via crossbeam/mpsc channels.
 
 ### Phase 5: Advanced Optimization
 - [ ] Benchmarking harness integration into the UI.
