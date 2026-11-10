@@ -11,7 +11,12 @@ use velocity_storage::Storage;
 
 use crate::state::{ActiveTab, AppState, EngineCommand, EngineEvent};
 use crate::theme::Theme;
-use crate::views::{benchmarks::render_benchmarks_view, chat::render_chat_view, models::render_models_view, settings::render_settings_view};
+use crate::views::{
+    benchmarks::render_benchmarks_view,
+    chat::{render_chat_messages, render_claude_input_capsule},
+    models::render_models_view,
+    settings::render_settings_view,
+};
 
 pub struct VelocityApp {
     pub state: AppState,
@@ -429,11 +434,29 @@ impl eframe::App for VelocityApp {
                 });
             });
 
-        // 3. Central Canvas
+        // 3. Pinned Bottom Chat Input Dock (Rendered ONLY on Chat tab, directly above status bar)
+        if self.state.active_tab == ActiveTab::Chat {
+            TopBottomPanel::bottom("chat_input_dock")
+                .frame(
+                    Frame::none()
+                        .fill(Theme::BG_CANVAS)
+                        .inner_margin(Margin {
+                            left: 12.0,
+                            right: 12.0,
+                            top: 4.0,
+                            bottom: 8.0,
+                        }),
+                )
+                .show(ctx, |ui| {
+                    render_claude_input_capsule(ui, &mut self.state, &mut on_send, &mut on_stop);
+                });
+        }
+
+        // 4. Central Canvas (Messages scroll area takes all remaining vertical space!)
         CentralPanel::default()
             .frame(Frame::none().fill(Theme::BG_CANVAS).inner_margin(Margin::same(12.0)))
             .show(ctx, |ui| match self.state.active_tab {
-                ActiveTab::Chat => render_chat_view(ui, &mut self.state, &mut on_send, &mut on_stop),
+                ActiveTab::Chat => render_chat_messages(ui, &mut self.state, &mut on_send),
                 ActiveTab::Models => render_models_view(
                     ui,
                     &mut self.state,

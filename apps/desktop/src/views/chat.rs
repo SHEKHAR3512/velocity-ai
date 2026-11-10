@@ -5,66 +5,63 @@ use velocity_core::{Message, Role};
 use crate::state::AppState;
 use crate::theme::Theme;
 
-const MAX_CHAT_WIDTH: f32 = 780.0;
+pub const MAX_CHAT_WIDTH: f32 = 780.0;
 
-pub fn render_chat_view(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
-    let full_rect = ui.available_rect_before_wrap();
-    let available_width = full_rect.width();
+/// Renders the scrollable chat messages area (takes full height of the central panel)
+pub fn render_chat_messages(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>) {
+    let available_width = ui.available_width();
     let content_width = available_width.min(MAX_CHAT_WIDTH);
-    let margin_x = ((available_width - content_width) / 2.0).max(0.0);
+    let side_margin = ((available_width - content_width) / 2.0).max(0.0);
 
-    let chat_rect = egui::Rect::from_min_size(
-        egui::pos2(full_rect.min.x + margin_x, full_rect.min.y),
-        egui::vec2(content_width, full_rect.height()),
-    );
+    ui.horizontal(|ui| {
+        ui.add_space(side_margin);
 
-    ui.allocate_new_ui(
-        egui::UiBuilder::new()
-            .max_rect(chat_rect)
-            .layout(Layout::bottom_up(Align::Center)),
-        |ui| {
-            ui.add_space(8.0);
+        ui.vertical(|ui| {
+            ui.set_width(content_width);
 
-            // 1. PINNED BOTTOM INPUT CAPSULE (always at the very bottom, like ChatGPT & Claude)
-            render_claude_input_capsule(ui, state, on_send, on_stop);
-
-            ui.add_space(10.0);
-
-            // 2. CHAT MESSAGES SCROLL AREA (Takes all remaining vertical space up to the top)
             ScrollArea::vertical()
                 .stick_to_bottom(true)
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    ui.with_layout(Layout::top_down(Align::Min), |ui| {
-                        ui.set_width(ui.available_width());
-                        ui.add_space(12.0);
+                    ui.set_width(content_width);
+                    ui.add_space(8.0);
 
-                        if state.messages.is_empty() && state.streaming_text.is_empty() {
-                            render_claude_welcome(ui, on_send);
-                        } else {
-                            for msg in &state.messages {
-                                if msg.role != Role::System {
-                                    render_claude_message(ui, msg);
-                                    ui.add_space(18.0);
-                                }
-                            }
-
-                            // Render active streaming message if generating
-                            if state.is_generating && !state.streaming_text.is_empty() {
-                                let stream_msg = Message::new(
-                                    state.current_conv_id.unwrap_or_else(Uuid::nil),
-                                    Role::Assistant,
-                                    format!("{} |", state.streaming_text),
-                                );
-                                render_claude_message(ui, &stream_msg);
+                    if state.messages.is_empty() && state.streaming_text.is_empty() {
+                        render_claude_welcome(ui, on_send);
+                    } else {
+                        for msg in &state.messages {
+                            if msg.role != Role::System {
+                                render_claude_message(ui, msg);
                                 ui.add_space(18.0);
                             }
                         }
-                        ui.add_space(16.0);
-                    });
+
+                        // Render active streaming message if generating
+                        if state.is_generating && !state.streaming_text.is_empty() {
+                            let stream_msg = Message::new(
+                                state.current_conv_id.unwrap_or_else(Uuid::nil),
+                                Role::Assistant,
+                                format!("{} |", state.streaming_text),
+                            );
+                            render_claude_message(ui, &stream_msg);
+                            ui.add_space(18.0);
+                        }
+                    }
+                    ui.add_space(16.0);
                 });
-        },
-    );
+        });
+
+        ui.add_space(side_margin);
+    });
+}
+
+/// Fallback wrapper if called directly
+#[allow(dead_code)]
+pub fn render_chat_view(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
+    ui.vertical(|ui| {
+        render_chat_messages(ui, state, on_send);
+        render_claude_input_capsule(ui, state, on_send, on_stop);
+    });
 }
 
 fn render_claude_welcome(ui: &mut Ui, on_send: &mut Option<String>) {
@@ -368,94 +365,107 @@ fn render_claude_code_block(ui: &mut Ui, lang: &str, code: &str) {
     ui.add_space(8.0);
 }
 
-fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
-    let capsule_width = ui.available_width();
-    Frame::none()
-        .fill(Theme::BG_INPUT)
-        .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
-        .rounding(Rounding::same(16.0))
-        .inner_margin(Margin::symmetric(16.0, 10.0))
-        .show(ui, |ui| {
-            ui.set_width(capsule_width);
-            ui.vertical(|ui| {
-                // Text input
-                let response = ui.add(
-                    TextEdit::multiline(&mut state.input_text)
-                        .hint_text("Reply to Velocity... (Enter to send, Shift+Enter for new line)")
-                        .desired_rows(2)
-                        .desired_width(ui.available_width())
-                        .font(egui::FontId::proportional(14.5))
-                        .frame(false),
-                );
+pub fn render_claude_input_capsule(ui: &mut Ui, state: &mut AppState, on_send: &mut Option<String>, on_stop: &mut bool) {
+    let available_width = ui.available_width();
+    let content_width = available_width.min(MAX_CHAT_WIDTH);
+    let side_margin = ((available_width - content_width) / 2.0).max(0.0);
 
-                // Handle Enter key for send (without Shift)
-                if response.has_focus()
-                    && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift)
-                {
-                    let trimmed = state.input_text.trim().to_string();
-                    if !trimmed.is_empty() && !state.is_generating {
-                        *on_send = Some(trimmed);
-                        state.input_text.clear();
-                    }
-                }
+    ui.horizontal(|ui| {
+        ui.add_space(side_margin);
 
-                ui.add_space(6.0);
+        ui.vertical(|ui| {
+            ui.set_width(content_width);
 
-                // Capsule bottom action row
-                ui.horizontal(|ui| {
-                    // Model badge pill
-                    ui.label(
-                        RichText::new("Velocity Instant | Qwen 0.5B")
-                            .font(egui::FontId::proportional(11.5))
-                            .color(Theme::CLAUDE_TERRACOTTA),
-                    );
+            Frame::none()
+                .fill(Theme::BG_INPUT)
+                .stroke(Stroke::new(1.0_f32, Theme::BORDER_WARM))
+                .rounding(Rounding::same(14.0))
+                .inner_margin(Margin::symmetric(14.0, 10.0))
+                .show(ui, |ui| {
+                    ui.set_width(content_width);
+                    ui.vertical(|ui| {
+                        // Text input
+                        let response = ui.add(
+                            TextEdit::multiline(&mut state.input_text)
+                                .hint_text("Reply to Velocity... (Enter to send, Shift+Enter for new line)")
+                                .desired_rows(2)
+                                .desired_width(ui.available_width())
+                                .font(egui::FontId::proportional(14.0))
+                                .frame(false),
+                        );
 
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if state.is_generating {
-                            // Pulsing stop button
-                            let stop_btn = egui::Button::new(
-                                RichText::new("Stop")
-                                    .font(egui::FontId::proportional(12.0))
-                                    .strong()
-                                    .color(Color32::WHITE),
-                            )
-                            .fill(Theme::ACCENT_RED)
-                            .rounding(Rounding::same(14.0))
-                            .min_size(Vec2::new(72.0, 28.0));
-
-                            if ui.add(stop_btn).clicked() {
-                                *on_stop = true;
-                            }
-                        } else {
-                            let can_send = !state.input_text.trim().is_empty();
-                            let send_btn = egui::Button::new(
-                                RichText::new("Send")
-                                    .font(egui::FontId::proportional(12.5))
-                                    .strong()
-                                    .color(if can_send {
-                                        Color32::WHITE
-                                    } else {
-                                        Theme::TEXT_MUTED
-                                    }),
-                            )
-                            .fill(if can_send {
-                                Theme::CLAUDE_TERRACOTTA
-                            } else {
-                                Color32::from_rgb(46, 44, 40)
-                            })
-                            .rounding(Rounding::same(14.0))
-                            .min_size(Vec2::new(72.0, 28.0));
-
-                            if ui.add_enabled(can_send, send_btn).clicked() {
-                                let trimmed = state.input_text.trim().to_string();
-                                if !trimmed.is_empty() {
-                                    *on_send = Some(trimmed);
-                                    state.input_text.clear();
-                                }
+                        // Handle Enter key for send (without Shift)
+                        if response.has_focus()
+                            && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift)
+                        {
+                            let trimmed = state.input_text.trim().to_string();
+                            if !trimmed.is_empty() && !state.is_generating {
+                                *on_send = Some(trimmed);
+                                state.input_text.clear();
                             }
                         }
+
+                        ui.add_space(6.0);
+
+                        // Capsule bottom action row
+                        ui.horizontal(|ui| {
+                            // Model badge pill
+                            ui.label(
+                                RichText::new("Velocity Instant | Qwen 0.5B")
+                                    .font(egui::FontId::proportional(11.5))
+                                    .color(Theme::CLAUDE_TERRACOTTA),
+                            );
+
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                if state.is_generating {
+                                    // Pulsing stop button
+                                    let stop_btn = egui::Button::new(
+                                        RichText::new("Stop")
+                                            .font(egui::FontId::proportional(12.0))
+                                            .strong()
+                                            .color(Color32::WHITE),
+                                    )
+                                    .fill(Theme::ACCENT_RED)
+                                    .rounding(Rounding::same(12.0))
+                                    .min_size(Vec2::new(68.0, 26.0));
+
+                                    if ui.add(stop_btn).clicked() {
+                                        *on_stop = true;
+                                    }
+                                } else {
+                                    let can_send = !state.input_text.trim().is_empty();
+                                    let send_btn = egui::Button::new(
+                                        RichText::new("Send")
+                                            .font(egui::FontId::proportional(12.0))
+                                            .strong()
+                                            .color(if can_send {
+                                                Color32::WHITE
+                                            } else {
+                                                Theme::TEXT_MUTED
+                                            }),
+                                    )
+                                    .fill(if can_send {
+                                        Theme::CLAUDE_TERRACOTTA
+                                    } else {
+                                        Color32::from_rgb(46, 44, 40)
+                                    })
+                                    .rounding(Rounding::same(12.0))
+                                    .min_size(Vec2::new(68.0, 26.0));
+
+                                    if ui.add_enabled(can_send, send_btn).clicked() {
+                                        let trimmed = state.input_text.trim().to_string();
+                                        if !trimmed.is_empty() {
+                                            *on_send = Some(trimmed);
+                                            state.input_text.clear();
+                                        }
+                                    }
+                                }
+                            });
+                        });
                     });
                 });
-            });
         });
+
+        ui.add_space(side_margin);
+    });
 }
